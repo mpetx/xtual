@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <optional>
 
 m4_include(`common.hxx')
 m4_include(`utf32.hxx')
