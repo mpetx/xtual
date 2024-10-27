@@ -92,81 +92,85 @@ namespace xtual
         return (ch >> 7) == 0;
     }
 
-    constexpr bool is_2_sequence_indicator(char8_t ch)
+    constexpr bool is_utf8_2_prefix(char8_t ch)
     {
         return (ch >> 5) == 0x06;
     }
 
-    constexpr bool is_3_sequence_indicator(char8_t ch)
+    constexpr bool is_utf8_3_prefix(char8_t ch)
     {
         return (ch >> 4) == 0x0e;
     }
 
-    constexpr bool is_4_sequence_indicator(char8_t ch)
+    constexpr bool is_utf8_4_prefix(char8_t ch)
     {
         return (ch >> 3) == 0x1e;
     }
 
-    constexpr bool is_sequence_constituent(char8_t ch)
+    constexpr bool is_utf8_tail(char8_t ch)
     {
         return (ch >> 6) == 0x02;
     }
 
-    template <std::input_iterator Iter, std::sentinel_for<Iter> Sent, std::invocable<Iter &, Sent> Rdr>
-    std::optional<std::pair<char8_t, char8_t>> read_2_units(Iter &i, Sent s, Rdr read)
+    constexpr char32_t decode_utf8_2(char8_t w1, char8_t w2)
     {
-        auto opt1 = read(i, s);
-
-        if (!opt1.has_value())
-        {
-            return std::nullopt;
-        }
-
-        char8_t c1 = opt1.value();
-
-        auto opt2 = read(i, s);
-
-        if (!opt2.has_value())
-        {
-            return std::nullopt;
-        }
-
-        char8_t c2 = opt2.value();
-
-        return std::pair { c1, c2 };
+        return ((static_cast<char32_t>(w1) & U'\x1f') << 6)
+            | (static_cast<char32_t>(w2) & U'\x3f');
     }
 
-    template <std::input_iterator Iter, std::sentinel_for<Iter> Sent, std::invocable<Iter &, Sent> Rdr>
-    std::optional<std::tuple<char8_t, char8_t, char8_t>> read_3_units(Iter &i, Sent s, Rdr read)
+    constexpr char32_t decode_utf8_3(char8_t w1, char8_t w2, char8_t w3)
     {
-        auto opt1 = read(i, s);
+        return ((static_cast<char32_t>(w1) & U'\x0f') << 12)
+            | ((static_cast<char32_t>(w2) & U'\x3f') << 6)
+            | (static_cast<char32_t>(w3) & U'\x3f');
+    }
 
-        if (!opt1.has_value())
+    constexpr char32_t decode_utf8_4(char8_t w1, char8_t w2, char8_t w3, char8_t w4)
+    {
+        return ((static_cast<char32_t>(w1) & U'\x07') << 18)
+            | ((static_cast<char32_t>(w2) & U'\x3f') << 12)
+            | ((static_cast<char32_t>(w3) & U'\x3f') << 6)
+            | (static_cast<char32_t>(w4) & U'\x3f');
+    }
+    
+    constexpr bool is_valid_utf8_2_value(char32_t ch)
+    {
+        return (ch & ~U'\x7f') != 0 && is_code_point(ch);
+    }
+
+    constexpr bool is_valid_utf8_3_value(char32_t ch)
+    {
+        return (ch & ~U'\x7ff') != 0 && is_code_point(ch);
+    }
+
+    constexpr bool is_valid_utf8_4_value(char32_t ch)
+    {
+        return (ch & ~U'\xffff') != 0 && is_code_point(ch);
+    }
+    
+    template <std::input_iterator Iter, std::sentinel_for<Iter> Sent, std::invocable<Iter &, Sent> Rdr>
+    bool read_utf8_tail(Iter &i, Sent s, char8_t buf[], std::size_t n, Rdr read)
+    {
+        for (std::size_t k = 0; k < n; ++k)
         {
-            return std::nullopt;
+            auto opt = read(i, s);
+
+            if (!opt.has_value())
+            {
+                return false;
+            }
+
+            char8_t ch = opt.value();
+
+            if (!is_utf8_tail(ch))
+            {
+                return false;
+            }
+
+            buf[k] = ch;
         }
 
-        char8_t c1 = opt1.value();
-
-        auto opt2 = read(i, s);
-
-        if (!opt2.has_value())
-        {
-            return std::nullopt;
-        }
-
-        char8_t c2 = opt2.value();
-
-        auto opt3 = read(i, s);
-
-        if (!opt3.has_value())
-        {
-            return std::nullopt;
-        }
-
-        char8_t c3 = opt3.value();
-        
-        return std::tuple { c1, c2, c3 };
+        return true;
     }
     
     template <typename charT, std::input_iterator Iter, std::sentinel_for<Iter> Sent, std::invocable<Iter &, Sent> Rdr>
@@ -186,83 +190,54 @@ namespace xtual
         {
             return static_cast<char32_t>(w1);
         }
-        else if (is_2_sequence_indicator(w1))
+        else if (is_utf8_2_prefix(w1))
         {
-            auto opt2 = read(i, s);
+            char8_t ws[1];
 
-            if (!opt2.has_value())
+            if (!read_utf8_tail(i, s, ws, 1, read))
             {
                 return std::nullopt;
             }
 
-            char8_t w2 = opt2.value();
+            char32_t ch = decode_utf8_2(w1, ws[0]);
 
-            if (!is_sequence_constituent(w2))
-            {
-                return std::nullopt;
-            }
-
-            char32_t ch= ((static_cast<char32_t>(w1) & U'\x1f') << 6)
-                | (static_cast<char32_t>(w2) & U'\x3f');
-
-            if ((ch & ~U'\x7f') == 0 || !is_code_point(ch))
+            if (!is_valid_utf8_2_value(ch))
             {
                 return std::nullopt;
             }
 
             return ch;
         }
-        else if (is_3_sequence_indicator(w1))
+        else if (is_utf8_3_prefix(w1))
         {
-            auto opt_rest = read_2_units(i, s, read);
+            char8_t ws[2];
 
-            if (!opt_rest.has_value())
+            if (!read_utf8_tail(i, s, ws, 2, read))
             {
                 return std::nullopt;
             }
 
-            auto [ w2, w3 ] = opt_rest.value();
+            char32_t ch = decode_utf8_3(w1, ws[0], ws[1]);
 
-            if (!is_sequence_constituent(w2) || !is_sequence_constituent(w3))
-            {
-                return std::nullopt;
-            }
-
-            char32_t ch = ((static_cast<char32_t>(w1) & U'\x0f') << 12)
-                | ((static_cast<char32_t>(w2) & U'\x3f') << 6)
-                | (static_cast<char32_t>(w3) & U'\x3f');
-
-            if ((ch & ~U'\x7ff') == 0 || !is_code_point(ch))
+            if (!is_valid_utf8_3_value(ch))
             {
                 return std::nullopt;
             }
 
             return ch;
         }
-        else if (is_4_sequence_indicator(w1))
+        else if (is_utf8_4_prefix(w1))
         {
-            auto opt_rest = read_3_units(i, s, read);
+            char8_t ws[3];
 
-            if (!opt_rest.has_value())
-            {
-                return std::nullopt;
-            }
-
-            auto [ w2, w3, w4 ] = opt_rest.value();
-
-            if (!is_sequence_constituent(w2)
-                || !is_sequence_constituent(w3)
-                || !is_sequence_constituent(w4))
+            if (!read_utf8_tail(i, s, ws, 3, read))
             {
                 return std::nullopt;
             }
             
-            char32_t ch = ((static_cast<char32_t>(w1) & U'\x07') << 18)
-                | ((static_cast<char32_t>(w2) & U'\x3f') << 12)
-                | ((static_cast<char32_t>(w3) & U'\x3f') << 6)
-                | (static_cast<char32_t>(w4) & U'\x3f');
+            char32_t ch = decode_utf8_4(w1, ws[0], ws[1], ws[2]);
 
-            if ((ch & ~U'\xffff') == 0 || !is_code_point(ch))
+            if (!is_valid_utf8_4_value(ch))
             {
                 return std::nullopt;
             }
