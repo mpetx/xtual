@@ -111,6 +111,72 @@ void test_encode_b8_insufficient()
     assert(!xtual::encode_as_b8<signed char>(i, buf + 3, U'𩸽'));
 }
 
+void test_decode_u8_normal()
+{
+    const char8_t *buf = u8"aыあ𩸽";
+    const char8_t *i = buf;
+
+    assert(xtual::decode_from_u8(i, buf + 10) == U'a');
+    assert(i == buf + 1);
+    
+    assert(xtual::decode_from_u8(i, buf + 10) == U'ы');
+    assert(i == buf + 3);
+    
+    assert(xtual::decode_from_u8(i, buf + 10) == U'あ');
+    assert(i == buf + 6);
+    
+    assert(xtual::decode_from_u8(i, buf + 10) == U'𩸽');
+    assert(i == buf + 10);
+}
+
+void test_decode_b8_normal()
+{
+    const char *buf = "aыあ𩸽";
+    const char *i = buf;
+
+    assert(xtual::decode_from_b8<char>(i, buf + 10) == U'a');
+    assert(i == buf + 1);
+    
+    assert(xtual::decode_from_b8<char>(i, buf + 10) == U'ы');
+    assert(i == buf + 3);
+    
+    assert(xtual::decode_from_b8<char>(i, buf + 10) == U'あ');
+    assert(i == buf + 6);
+    
+    assert(xtual::decode_from_b8<char>(i, buf + 10) == U'𩸽');
+    assert(i == buf + 10);
+}
+
+void test_decode_u8_unexpected_end()
+{
+    const char8_t *buf = u8"a";
+    assert(!xtual::decode_from_u8(buf, buf).has_value());
+
+    buf = u8"é";
+    assert(!xtual::decode_from_u8(buf, buf + 1).has_value());
+
+    buf = u8"い";
+    assert(!xtual::decode_from_u8(buf, buf + 2).has_value());
+
+    buf = u8"𩸽";
+    assert(!xtual::decode_from_u8(buf, buf + 3).has_value());
+}
+
+void test_decode_b8_unexpected_end()
+{
+    const char *buf = "a";
+    assert(!xtual::decode_from_b8<char>(buf, buf).has_value());
+
+    buf = "é";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 1).has_value());
+
+    buf = "い";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 2).has_value());
+
+    buf = "𩸽";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 3).has_value());
+}
+
 int main()
 {
     test_encode_u8_normal();
@@ -121,6 +187,12 @@ int main()
 
     test_encode_u8_insufficient();
     test_encode_b8_insufficient();
+
+    test_decode_u8_normal();
+    test_decode_b8_normal();
+
+    test_decode_u8_unexpected_end();
+    test_decode_b8_unexpected_end();    
     
     std::cout << "OK" << std::endl;
 }
