@@ -8,5 +8,6 @@
 
 m4_include(`common.hxx')
 m4_include(`utf32.hxx')
+m4_include(`utf16.hxx')
 
 #endif
