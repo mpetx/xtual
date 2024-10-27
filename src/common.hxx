@@ -16,6 +16,11 @@ namespace xtual
         return (ch >> 11) == 0x1b;
     }
 
+    constexpr bool is_surrogate(char16_t ch)
+    {
+        return (ch >> 11) == 0x1b;
+    }
+    
     constexpr bool is_high_surrogate(char32_t ch)
     {
         return (ch >> 10) == 0x36;

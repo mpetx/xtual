@@ -123,6 +123,54 @@ void test_encode_b16le_insufficient()
     assert(!xtual::encode_as_b16le<char>(i, buf + 3, U'𩸽'));
 }
 
+void test_decode_u16_normal()
+{
+    char16_t buf[] = { u'阿', u'\xd867', u'\xde3d' };
+    char16_t *i = buf;
+
+    auto opt1 = xtual::decode_from_u16(i, buf + 3);
+
+    assert(opt1.has_value() && opt1.value() == U'阿');
+    assert(i == buf + 1);
+    
+    auto opt2 = xtual::decode_from_u16(i, buf + 3);
+
+    assert(opt2.has_value() && opt2.value() == U'𩸽');
+    assert(i == buf + 3);
+}
+
+void test_decode_b16be_normal()
+{
+    std::uint8_t buf[] = { 0x96, 0x3f, 0xd8, 0x67, 0xde, 0x3d };
+    std::uint8_t *i = buf;
+
+    auto opt1 = xtual::decode_from_b16be<char>(i, buf + 6);
+
+    assert(opt1.has_value() && opt1.value() == U'阿');
+    assert(i == buf + 2);
+    
+    auto opt2 = xtual::decode_from_b16be<char>(i, buf + 6);
+
+    assert(opt2.has_value() && opt2.value() == U'𩸽');
+    assert(i == buf + 6);
+}
+
+void test_decode_b16le_normal()
+{
+    std::uint8_t buf[] = {  0x3f, 0x96, 0x67, 0xd8, 0x3d, 0xde };
+    std::uint8_t *i = buf;
+
+    auto opt1 = xtual::decode_from_b16le<char>(i, buf + 6);
+
+    assert(opt1.has_value() && opt1.value() == U'阿');
+    assert(i == buf + 2);
+    
+    auto opt2 = xtual::decode_from_b16le<char>(i, buf + 6);
+
+    assert(opt2.has_value() && opt2.value() == U'𩸽');
+    assert(i == buf + 6);
+}
+
 int main()
 {
     test_encode_u16_normal();
@@ -136,6 +184,10 @@ int main()
     test_encode_u16_insufficient();
     test_encode_b16be_insufficient();
     test_encode_b16le_insufficient();
+
+    test_decode_u16_normal();
+    test_decode_b16be_normal();
+    test_decode_b16le_normal();
     
     std::cout << "OK" << std::endl;
 }
