@@ -1,6 +1,7 @@
 
 #include <xtual.hxx>
 
+#include <algorithm>
 #include <iostream>
 
 #undef NDEBUG
@@ -12,9 +13,9 @@ void test_encode_u32_normal()
     char32_t *i = buf;
 
     assert(xtual::encode_as_u32(i, buf + 4, U'あ'));
-
-    assert(buf[0] == U'あ');
-    assert(i == buf + 1);
+    
+    const char32_t *expect = U"あ";
+    assert(std::equal(buf + 0, i, expect, expect + 1));
 }
 
 void test_encode_b32be_normal()
@@ -24,11 +25,8 @@ void test_encode_b32be_normal()
 
     assert(xtual::encode_as_b32be<std::byte>(i, buf + 16, U'あ'));
 
-    assert(buf[0] == static_cast<std::byte>(0x00));
-    assert(buf[1] == static_cast<std::byte>(0x00));
-    assert(buf[2] == static_cast<std::byte>(0x30));
-    assert(buf[3] == static_cast<std::byte>(0x42));
-    assert(i == buf + 4);
+    auto *expect = reinterpret_cast<const std::byte *>("\x00\x00\x30\x42");
+    assert(std::equal(buf + 0, i, expect, expect + 4));
 }
 
 void test_encode_b32le_normal()
@@ -38,11 +36,8 @@ void test_encode_b32le_normal()
 
     assert(xtual::encode_as_b32le<char>(i, buf + 16, U'ア'));
 
-    assert(buf[0] == static_cast<char>(0xa2));
-    assert(buf[1] == static_cast<char>(0x30));
-    assert(buf[2] == static_cast<char>(0x00));
-    assert(buf[3] == static_cast<char>(0x00));
-    assert(i == buf + 4);
+    const char *expect = "\xa2\x30\x00\x00";
+    assert(std::equal(buf + 0, i, expect, expect + 4));
 }
 
 void test_encode_u32_invalid()
@@ -98,105 +93,95 @@ void test_encode_b32le_insufficient()
 
 void test_decode_u32_normal()
 {
-    char32_t buf[] = { U'あ', U'い', U'う' };
-    char32_t *i = buf;
+    const char32_t *buf = U"あ";
+    const char32_t *i = buf;
 
-    auto opt = xtual::decode_from_u32(i, buf + 3);
-
-    assert(opt.has_value() && opt.value() == U'あ');
+    assert(xtual::decode_from_u32(i, buf + 1) == U'あ');
     assert(i == buf + 1);
 }
 
 void test_decode_b32be_normal()
 {
-    char buf[] = { '\0', '\0', '\x30', '\x42' };
-    char *i = buf;
+    const char *buf = "\x00\x00\x30\x42";
+    const char *i = buf;
 
-    auto opt = xtual::decode_from_b32be<char>(i, buf + 4);
-
-    assert(opt.has_value() && opt.value() == U'あ');
+    assert(xtual::decode_from_b32be<char>(i, buf + 4) == U'あ');
     assert(i == buf + 4);
 }
 
 void test_decode_b32le_normal()
 {
-    char buf[] = { '\x42', '\x30', '\0', '\0' };
-    char *i = buf;
+    const char *buf = "\x42\x30\x00\x00";
+    const char *i = buf;
 
-    auto opt = xtual::decode_from_b32le<char>(i, buf + 4);
-
-    assert(opt.has_value() && opt.value() == U'あ');
+    assert(xtual::decode_from_b32le<char>(i, buf + 4) == U'あ');
     assert(i == buf + 4);
 }
 
-void test_decode_u32_invalid()
+void test_decode_u32_surrogate()
 {
-    char32_t buf[] = { U'\xd800' };
-    char32_t *i = buf;
+    const char32_t *buf = U"\xd800";
+    const char32_t *i = buf;
 
-    auto opt = xtual::decode_from_u32(i, buf + 1);
-
-    assert(!opt.has_value());
+    assert(!xtual::decode_from_u32(i, buf + 1).has_value());
 }
 
-void test_decode_b32be_invalid()
+void test_decode_b32be_surrogate()
 {
-    std::byte buf[] = {
-        static_cast<std::byte>(0x00),
-        static_cast<std::byte>(0x00),
-        static_cast<std::byte>(0xdf),
-        static_cast<std::byte>(0x00)
-    };
-    std::byte *i = buf;
+    auto buf = reinterpret_cast<const std::byte *>("\x00\x00\xdf\x00");
+    const std::byte *i = buf;
 
-    auto opt = xtual::decode_from_b32be<std::byte>(i, buf + 4);
-
-    assert(!opt.has_value());
+    assert(!xtual::decode_from_b32be<std::byte>(i, buf + 4).has_value());
 }
 
-void test_decode_b32le_invalid()
+void test_decode_b32le_surrogate()
 {
-    std::byte buf[] = {
-        static_cast<std::byte>(0x00),
-        static_cast<std::byte>(0xdf),
-        static_cast<std::byte>(0x00),
-        static_cast<std::byte>(0x00)
-    };
-    std::byte *i = buf;
+    auto buf = reinterpret_cast<const std::byte *>("\x00\xdf\x00\x00");
+    const std::byte *i = buf;
 
-    auto opt = xtual::decode_from_b32le<std::byte>(i, buf + 4);
-
-    assert(!opt.has_value());
+    assert(!xtual::decode_from_b32le<std::byte>(i, buf + 4).has_value());
 }
 
-void test_decode_u32_insufficient()
+void test_decode_u32_unexpected_end()
 {
-    char32_t buf[] = { U'あ' };
-    char32_t *i = buf;
+    const char32_t *buf = U"あ";
+    const char32_t *i = buf;
 
-    auto opt = xtual::decode_from_u32(i, buf + 0);
-
-    assert(!opt.has_value());
+    assert(!xtual::decode_from_u32(i, buf + 0).has_value());
 }
 
-void test_decode_b32be_insufficient()
+void test_decode_b32be_unexpected_end()
 {
-    char buf[] = { '\0', '\0', '\x30', '\x42' };
-    char *i = buf;
+    const char *buf = "\x00\x00\x30\x42";
+    const char *i = buf;
 
-    auto opt = xtual::decode_from_b32be<char>(i, buf + 3);
+    assert(!xtual::decode_from_b32be<char>(i, buf + 0).has_value());
+    
+    i = buf;
+    assert(!xtual::decode_from_b32be<char>(i, buf + 1).has_value());
+    
+    i = buf;
+    assert(!xtual::decode_from_b32be<char>(i, buf + 2).has_value());
 
-    assert(!opt.has_value());
+    i = buf;
+    assert(!xtual::decode_from_b32be<char>(i, buf + 3).has_value());
 }
 
-void test_decode_b32le_insufficient()
+void test_decode_b32le_unexpected_end()
 {
-    char buf[] = { '\x42', '\x30', '\0', '\0' };
-    char *i = buf;
+    const char *buf = "\x42\x30\x00\x00";
+    const char *i = buf;
 
-    auto opt = xtual::decode_from_b32le<char>(i, buf + 3);
+    assert(!xtual::decode_from_b32le<char>(i, buf + 0).has_value());
 
-    assert(!opt.has_value());
+    i = buf;
+    assert(!xtual::decode_from_b32le<char>(i, buf + 1).has_value());
+
+    i = buf;
+    assert(!xtual::decode_from_b32le<char>(i, buf + 2).has_value());
+
+    i = buf;
+    assert(!xtual::decode_from_b32le<char>(i, buf + 3).has_value());
 }
 
 int main()
@@ -217,13 +202,13 @@ int main()
     test_decode_b32be_normal();
     test_decode_b32le_normal();
 
-    test_decode_u32_invalid();
-    test_decode_b32be_invalid();
-    test_decode_b32le_invalid();
+    test_decode_u32_surrogate();
+    test_decode_b32be_surrogate();
+    test_decode_b32le_surrogate();
 
-    test_decode_u32_insufficient();
-    test_decode_b32be_insufficient();
-    test_decode_b32le_insufficient();
+    test_decode_u32_unexpected_end();
+    test_decode_b32be_unexpected_end();
+    test_decode_b32le_unexpected_end();
     
     std::cout << "OK" << std::endl;
 }

@@ -1,6 +1,7 @@
 
 #include <xtual.hxx>
 
+#include <algorithm>
 #include <iostream>
 
 #undef NDEBUG
@@ -13,73 +14,61 @@ void test_encode_u8_normal()
 
     assert(xtual::encode_as_u8(i, buf + 16, U'a'));
 
-    assert(buf[0] == static_cast<char8_t>(0x61));
-    assert(i == buf + 1);
+    const char8_t *expect1 = u8"a";
+    assert(std::equal(buf + 0, i, expect1, expect1 + 1));
 
     i = buf;
 
     assert(xtual::encode_as_u8(i, buf + 16, U'я'));
 
-    assert(buf[0] == static_cast<char8_t>(0xd1));
-    assert(buf[1] == static_cast<char8_t>(0x8f));
-    assert(i == buf + 2);
+    const char8_t *expect2 = u8"я";
+    assert(std::equal(buf + 0, i, expect2, expect2 + 2));
 
     i = buf;
 
     assert(xtual::encode_as_u8(i, buf + 16, U'아'));
 
-    assert(buf[0] == static_cast<char8_t>(0xec));
-    assert(buf[1] == static_cast<char8_t>(0x95));
-    assert(buf[2] == static_cast<char8_t>(0x84));
-    assert(i == buf + 3);
+    const char8_t *expect3 = u8"아";
+    assert(std::equal(buf + 0, i, expect3, expect3 + 3));
 
     i = buf;
 
     assert(xtual::encode_as_u8(i, buf + 16, U'𩸽'));
 
-    assert(buf[0] == static_cast<char8_t>(0xf0));
-    assert(buf[1] == static_cast<char8_t>(0xa9));
-    assert(buf[2] == static_cast<char8_t>(0xb8));
-    assert(buf[3] == static_cast<char8_t>(0xbd));
-    assert(i == buf + 4);
+    const char8_t *expect4 = u8"𩸽";
+    assert(std::equal(buf + 0, i, expect4, expect4 + 4));
 }
 
 void test_encode_b8_normal()
 {
-    std::byte buf[16];
-    std::byte *i = buf;
+    char buf[16];
+    char *i = buf;
 
-    assert(xtual::encode_as_b8<std::byte>(i, buf + 16, U'a'));
+    assert(xtual::encode_as_b8<char>(i, buf + 16, U'a'));
 
-    assert(buf[0] == static_cast<std::byte>(0x61));
-    assert(i == buf + 1);
-
-    i = buf;
-
-    assert(xtual::encode_as_b8<std::byte>(i, buf + 16, U'я'));
-
-    assert(buf[0] == static_cast<std::byte>(0xd1));
-    assert(buf[1] == static_cast<std::byte>(0x8f));
-    assert(i == buf + 2);
+    const char *expect1 = "a";
+    assert(std::equal(buf + 0, i, expect1, expect1 + 1));
 
     i = buf;
 
-    assert(xtual::encode_as_b8<std::byte>(i, buf + 16, U'아'));
+    assert(xtual::encode_as_b8<char>(i, buf + 16, U'я'));
 
-    assert(buf[0] == static_cast<std::byte>(0xec));
-    assert(buf[1] == static_cast<std::byte>(0x95));
-    assert(buf[2] == static_cast<std::byte>(0x84));
-    assert(i == buf + 3);
+    const char *expect2 = "я";
+    assert(std::equal(buf + 0, i, expect2, expect2 + 2));
 
     i = buf;
 
-    assert(xtual::encode_as_b8<std::byte>(i, buf + 16, U'𩸽'));
+    assert(xtual::encode_as_b8<char>(i, buf + 16, U'아'));
 
-    assert(buf[0] == static_cast<std::byte>(0xf0));
-    assert(buf[1] == static_cast<std::byte>(0xa9));
-    assert(buf[2] == static_cast<std::byte>(0xb8));
-    assert(buf[3] == static_cast<std::byte>(0xbd));
-    assert(i == buf + 4);
+    const char *expect3 = "아";
+    assert(std::equal(buf + 0, i, expect3, expect3 + 3));
+
+    i = buf;
+
+    assert(xtual::encode_as_b8<char>(i, buf + 16, U'𩸽'));
+
+    const char *expect4 = "𩸽";
+    assert(std::equal(buf + 0, i, expect4, expect4 + 4));
 }
 
 void test_encode_u8_invalid()
