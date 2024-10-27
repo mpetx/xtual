@@ -177,6 +177,78 @@ void test_decode_b8_unexpected_end()
     assert(!xtual::decode_from_b8<char>(buf, buf + 3).has_value());
 }
 
+void test_decode_u8_invalid_sequence()
+{
+    const char8_t *buf = u8"\xc0\x00";
+    assert(!xtual::decode_from_u8(buf, buf + 2).has_value());
+
+    buf = u8"\xe0\x80\x00";
+    assert(!xtual::decode_from_u8(buf, buf + 3).has_value());
+
+    buf = u8"\xf0\x80\x80\x00";
+    assert(!xtual::decode_from_u8(buf, buf + 4).has_value());
+}
+
+void test_decode_b8_invalid_sequence()
+{
+    const char *buf = "\xc0\x00";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 2).has_value());
+
+    buf = "\xe0\x80\x00";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 3).has_value());
+
+    buf = "\xf0\x80\x80\x00";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 4).has_value());
+}
+
+void test_decode_u8_invalid_range()
+{
+    const char8_t *buf = u8"\xc0\x80";
+    assert(!xtual::decode_from_u8(buf, buf + 2).has_value());
+
+    buf = u8"\xe0\x80\x80";
+    assert(!xtual::decode_from_u8(buf, buf + 3).has_value());
+
+    buf = u8"\xe0\x9f\xbf";
+    assert(!xtual::decode_from_u8(buf, buf + 3).has_value());
+    
+    buf = u8"\xf0\x80\x80\x80";
+    assert(!xtual::decode_from_u8(buf, buf + 4).has_value());
+
+    buf = u8"\xf0\x80\x9f\xbf";
+    assert(!xtual::decode_from_u8(buf, buf + 4).has_value());
+
+    buf = u8"\xf0\x80\xbf\xbf";
+    assert(!xtual::decode_from_u8(buf, buf + 4).has_value());
+    
+    buf = u8"\xff\xbf\xbf\xbf";
+    assert(!xtual::decode_from_u8(buf, buf + 4).has_value());
+}
+
+void test_decode_b8_invalid_range()
+{
+    const char *buf = "\xc0\x80";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 2).has_value());
+
+    buf = "\xe0\x80\x80";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 3).has_value());
+
+    buf = "\xe0\x9f\xbf";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 3).has_value());
+    
+    buf = "\xf0\x80\x80\x80";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 4).has_value());
+
+    buf = "\xf0\x80\x9f\xbf";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 4).has_value());
+
+    buf = "\xf0\x80\xbf\xbf";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 4).has_value());
+    
+    buf = "\xff\xbf\xbf\xbf";
+    assert(!xtual::decode_from_b8<char>(buf, buf + 4).has_value());
+}
+
 int main()
 {
     test_encode_u8_normal();
@@ -193,6 +265,12 @@ int main()
 
     test_decode_u8_unexpected_end();
     test_decode_b8_unexpected_end();    
+
+    test_decode_u8_invalid_sequence();
+    test_decode_b8_invalid_sequence();
+
+    test_decode_u8_invalid_range();
+    test_decode_b8_invalid_range();    
     
     std::cout << "OK" << std::endl;
 }

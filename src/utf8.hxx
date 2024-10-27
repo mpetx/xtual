@@ -202,8 +202,15 @@ namespace xtual
                 return std::nullopt;
             }
 
-            return ((static_cast<char32_t>(w1) & U'\x1f') << 6)
+            char32_t ch= ((static_cast<char32_t>(w1) & U'\x1f') << 6)
                 | (static_cast<char32_t>(w2) & U'\x3f');
+
+            if ((ch & ~U'\x7f') == 0 || !is_code_point(ch))
+            {
+                return std::nullopt;
+            }
+
+            return ch;
         }
         else if (is_3_sequence_indicator(w1))
         {
@@ -221,9 +228,16 @@ namespace xtual
                 return std::nullopt;
             }
 
-            return ((static_cast<char32_t>(w1) & U'\x0f') << 12)
+            char32_t ch = ((static_cast<char32_t>(w1) & U'\x0f') << 12)
                 | ((static_cast<char32_t>(w2) & U'\x3f') << 6)
                 | (static_cast<char32_t>(w3) & U'\x3f');
+
+            if ((ch & ~U'\x7ff') == 0 || !is_code_point(ch))
+            {
+                return std::nullopt;
+            }
+
+            return ch;
         }
         else if (is_4_sequence_indicator(w1))
         {
@@ -243,10 +257,17 @@ namespace xtual
                 return std::nullopt;
             }
             
-            return ((static_cast<char32_t>(w1) & U'\x07') << 18)
+            char32_t ch = ((static_cast<char32_t>(w1) & U'\x07') << 18)
                 | ((static_cast<char32_t>(w2) & U'\x3f') << 12)
                 | ((static_cast<char32_t>(w3) & U'\x3f') << 6)
                 | (static_cast<char32_t>(w4) & U'\x3f');
+
+            if ((ch & ~U'\xffff') == 0 || !is_code_point(ch))
+            {
+                return std::nullopt;
+            }
+
+            return ch;
         }
         else
         {
