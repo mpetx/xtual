@@ -87,6 +87,88 @@ namespace xtual
         });
     }
 
+    constexpr bool is_ascii(char8_t ch)
+    {
+        return (ch >> 7) == 0;
+    }
+
+    constexpr bool is_2_sequence_indicator(char8_t ch)
+    {
+        return (ch >> 5) == 0x06;
+    }
+
+    constexpr bool is_3_sequence_indicator(char8_t ch)
+    {
+        return (ch >> 4) == 0x0e;
+    }
+
+    constexpr bool is_4_sequence_indicator(char8_t ch)
+    {
+        return (ch >> 3) == 0x1e;
+    }
+
+    constexpr bool is_sequence_constituent(char8_t ch)
+    {
+        return (ch >> 6) == 0x02;
+    }
+
+    template <std::input_iterator Iter, std::sentinel_for<Iter> Sent, std::invocable<Iter &, Sent> Rdr>
+    std::optional<std::pair<char8_t, char8_t>> read_2_units(Iter &i, Sent s, Rdr read)
+    {
+        auto opt1 = read(i, s);
+
+        if (!opt1.has_value())
+        {
+            return std::nullopt;
+        }
+
+        char8_t c1 = opt1.value();
+
+        auto opt2 = read(i, s);
+
+        if (!opt2.has_value())
+        {
+            return std::nullopt;
+        }
+
+        char8_t c2 = opt2.value();
+
+        return std::pair { c1, c2 };
+    }
+
+    template <std::input_iterator Iter, std::sentinel_for<Iter> Sent, std::invocable<Iter &, Sent> Rdr>
+    std::optional<std::tuple<char8_t, char8_t, char8_t>> read_3_units(Iter &i, Sent s, Rdr read)
+    {
+        auto opt1 = read(i, s);
+
+        if (!opt1.has_value())
+        {
+            return std::nullopt;
+        }
+
+        char8_t c1 = opt1.value();
+
+        auto opt2 = read(i, s);
+
+        if (!opt2.has_value())
+        {
+            return std::nullopt;
+        }
+
+        char8_t c2 = opt2.value();
+
+        auto opt3 = read(i, s);
+
+        if (!opt3.has_value())
+        {
+            return std::nullopt;
+        }
+
+        char8_t c3 = opt3.value();
+        
+        return std::tuple { c1, c2, c3 };
+    }
+    
     template <typename charT, std::input_iterator Iter, std::sentinel_for<Iter> Sent, std::invocable<Iter &, Sent> Rdr>
     requires std::convertible_to<std::iter_value_t<Iter>, charT>
     std::optional<char32_t> utf8_decode(Iter &i, Sent s, Rdr read)
@@ -100,11 +182,11 @@ namespace xtual
 
         char8_t w1 = opt1.value();
 
-        if (has_0_bit_tag(w1))
+        if (is_ascii(w1))
         {
             return static_cast<char32_t>(w1);
         }
-        else if (has_2_bit_tag(w1))
+        else if (is_2_sequence_indicator(w1))
         {
             auto opt2 = read(i, s);
 
@@ -115,7 +197,7 @@ namespace xtual
 
             char8_t w2 = opt2.value();
 
-            if (!has_1_bit_tag(w2))
+            if (!is_sequence_constituent(w2))
             {
                 return std::nullopt;
             }
@@ -123,32 +205,18 @@ namespace xtual
             return ((static_cast<char32_t>(w1) & U'\x1f') << 6)
                 | (static_cast<char32_t>(w2) & U'\x3f');
         }
-        else if (has_3_bit_tag(w1))
+        else if (is_3_sequence_indicator(w1))
         {
-            auto opt2 = read(i, s);
+            auto opt_rest = read_2_units(i, s, read);
 
-            if (!opt2.has_value())
+            if (!opt_rest.has_value())
             {
                 return std::nullopt;
             }
 
-            char8_t w2 = opt2.value();
+            auto [ w2, w3 ] = opt_rest.value();
 
-            if (!has_1_bit_tag(w2))
-            {
-                return std::nullopt;
-            }
-
-            auto opt3 = read(i, s);
-
-            if (!opt3.has_value())
-            {
-                return std::nullopt;
-            }
-
-            char8_t w3 = opt3.value();
-
-            if (!has_1_bit_tag(w3))
+            if (!is_sequence_constituent(w2) || !is_sequence_constituent(w3))
             {
                 return std::nullopt;
             }
@@ -157,46 +225,20 @@ namespace xtual
                 | ((static_cast<char32_t>(w2) & U'\x3f') << 6)
                 | (static_cast<char32_t>(w3) & U'\x3f');
         }
-        else if (has_4_bit_tag(w1))
+        else if (is_4_sequence_indicator(w1))
         {
-            auto opt2 = read(i, s);
+            auto opt_rest = read_3_units(i, s, read);
 
-            if (!opt2.has_value())
+            if (!opt_rest.has_value())
             {
                 return std::nullopt;
             }
 
-            char8_t w2 = opt2.value();
+            auto [ w2, w3, w4 ] = opt_rest.value();
 
-            if (!has_1_bit_tag(w2))
-            {
-                return std::nullopt;
-            }
-
-            auto opt3 = read(i, s);
-
-            if (!opt3.has_value())
-            {
-                return std::nullopt;
-            }
-
-            char8_t w3 = opt3.value();
-
-            if (!has_1_bit_tag(w3))
-            {
-                return std::nullopt;
-            }
-
-            auto opt4 = read(i, s);
-
-            if (!opt4.has_value())
-            {
-                return std::nullopt;
-            }
-
-            char8_t w4 = opt4.value();
-
-            if (!has_1_bit_tag(w4))
+            if (!is_sequence_constituent(w2)
+                || !is_sequence_constituent(w3)
+                || !is_sequence_constituent(w4))
             {
                 return std::nullopt;
             }

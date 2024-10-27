@@ -46,29 +46,4 @@ namespace xtual
         return !is_surrogate(ch) && ch <= U'\x10ffff';
     }
 
-    constexpr bool has_0_bit_tag(char8_t ch)
-    {
-        return (ch >> 7) == 0;
-    }
-
-    constexpr bool has_1_bit_tag(char8_t ch)
-    {
-        return (ch >> 6) == 0x02;
-    }
-
-    constexpr bool has_2_bit_tag(char8_t ch)
-    {
-        return (ch >> 5) == 0x06;
-    }
-
-    constexpr bool has_3_bit_tag(char8_t ch)
-    {
-        return (ch >> 4) == 0x0e;
-    }
-
-    constexpr bool has_4_bit_tag(char8_t ch)
-    {
-        return (ch >> 3) == 0x1e;
-    }
-
 }
