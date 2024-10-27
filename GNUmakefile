@@ -14,9 +14,9 @@ CXXFLAGS=-fPIC -std=c++20 -I$(BUNDLE_DIR)
 
 TARGET=$(BUNDLE_DIR)/xtual.hxx
 SOURCE=$(SRC_DIR)/xtual.hxx.m4
-COMPONENTS=$(addprefix $(SRC_DIR)/,)
+COMPONENTS=$(addprefix $(SRC_DIR)/, common.hxx utf32.hxx)
 
-TESTS=$(addprefix $(TEST_BIN_DIR)/,)
+TESTS=$(addprefix $(TEST_BIN_DIR)/, test-common test-utf32)
 
 .PHONY: all
 all: $(TARGET) $(TESTS)
