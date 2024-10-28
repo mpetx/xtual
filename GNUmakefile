@@ -19,7 +19,10 @@ COMPONENTS=$(addprefix $(SRC_DIR)/, common.hxx utf32.hxx utf16.hxx utf8.hxx)
 TESTS=$(addprefix $(TEST_BIN_DIR)/, test-common test-utf32 test-utf16 test-utf8)
 
 .PHONY: all
-all: $(TARGET) $(TESTS)
+all: $(TARGET)
+
+.PHONY: test
+test: $(TESTS)
 
 .PHONY: clean
 clean:
