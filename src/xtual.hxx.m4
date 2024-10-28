@@ -1,6 +1,8 @@
 #ifndef XTUAL_INCLUDE_XTUAL_HXX_AFE2A99E_7F15_43E2_BF45_640942838743
 #define XTUAL_INCLUDE_XTUAL_HXX_AFE2A99E_7F15_43E2_BF45_640942838743
 
+m4_include(`license.hxx')
+
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
