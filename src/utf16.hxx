@@ -10,19 +10,19 @@ namespace xtual
             return false;
         }
         
-        if ((ch & ~static_cast<char32_t>(0xff'ff)) == 0)
+        if ((ch & ~U'\xffff') == 0)
         {
             return write(i, s, static_cast<char16_t>(ch));
         }
         else
         {
-            char32_t u = ch - 0x01'00'00;
+            char32_t u = ch - U'\x10000';
             
-            char16_t w1 = static_cast<char16_t>(0xd800);
-            char16_t w2 = static_cast<char16_t>(0xdc00);
+            char16_t w1 = u'\xd800';
+            char16_t w2 = u'\xdc00';
 
-            w1 |= static_cast<char16_t>((u >> 10) & 0x03'ff);
-            w2 |= static_cast<char16_t>(u & 0x03'ff);
+            w1 |= static_cast<char16_t>((u >> 10) & U'\x3ff');
+            w2 |= static_cast<char16_t>(u & U'\x3ff');
 
             return write(i, s, w1) && write(i, s, w2);
         }
@@ -124,10 +124,10 @@ namespace xtual
             return std::nullopt;
         }
 
-        char32_t u = ((static_cast<char32_t>(w1) & 0x03'ff) << 10)
-            | (static_cast<char32_t>(w2) & 0x03'ff);
+        char32_t u = ((static_cast<char32_t>(w1) & U'\x3ff') << 10)
+            | (static_cast<char32_t>(w2) & U'\x3ff');
 
-        return u + 0x01'00'00;
+        return u + U'\x10000';
     }
 
     template <std::input_iterator Iter, std::sentinel_for<Iter> Sent>

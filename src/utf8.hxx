@@ -10,11 +10,11 @@ namespace xtual
             return false;
         }
 
-        if ((ch & ~static_cast<char32_t>(0x7f)) == 0)
+        if ((ch & ~U'\x7f') == 0)
         {
             return write(i, s, static_cast<char8_t>(ch));
         }
-        else if ((ch & ~static_cast<char32_t>(0x07'ff)) == 0)
+        else if ((ch & ~U'\x7ff') == 0)
         {
             char8_t c1 = static_cast<char8_t>(0xc0);
             char8_t c2 = static_cast<char8_t>(0x80);
@@ -24,7 +24,7 @@ namespace xtual
 
             return write(i, s, c1) && write(i, s, c2);
         }
-        else if ((ch & ~static_cast<char32_t>(0xff'ff)) == 0)
+        else if ((ch & ~U'\xffff') == 0)
         {
             char8_t c1 = static_cast<char8_t>(0xe0);
             char8_t c2 = static_cast<char8_t>(0x80);
@@ -89,27 +89,27 @@ namespace xtual
 
     constexpr bool is_ascii(char8_t ch)
     {
-        return (ch >> 7) == 0;
+        return (ch >> 7) == static_cast<char8_t>(0);
     }
 
     constexpr bool is_utf8_2_prefix(char8_t ch)
     {
-        return (ch >> 5) == 0x06;
+        return (ch >> 5) == static_cast<char8_t>(0x06);
     }
 
     constexpr bool is_utf8_3_prefix(char8_t ch)
     {
-        return (ch >> 4) == 0x0e;
+        return (ch >> 4) == static_cast<char8_t>(0x0e);
     }
 
     constexpr bool is_utf8_4_prefix(char8_t ch)
     {
-        return (ch >> 3) == 0x1e;
+        return (ch >> 3) == static_cast<char8_t>(0x1e);
     }
 
     constexpr bool is_utf8_tail(char8_t ch)
     {
-        return (ch >> 6) == 0x02;
+        return (ch >> 6) == static_cast<char8_t>(0x02);
     }
 
     constexpr char32_t decode_utf8_2(char8_t w1, char8_t w2)
@@ -135,17 +135,17 @@ namespace xtual
     
     constexpr bool is_valid_utf8_2_value(char32_t ch)
     {
-        return (ch & ~U'\x7f') != 0 && is_code_point(ch);
+        return (ch & ~U'\x7f') != U'\0' && is_code_point(ch);
     }
 
     constexpr bool is_valid_utf8_3_value(char32_t ch)
     {
-        return (ch & ~U'\x7ff') != 0 && is_code_point(ch);
+        return (ch & ~U'\x7ff') != U'\0' && is_code_point(ch);
     }
 
     constexpr bool is_valid_utf8_4_value(char32_t ch)
     {
-        return (ch & ~U'\xffff') != 0 && is_code_point(ch);
+        return (ch & ~U'\xffff') != U'\0' && is_code_point(ch);
     }
     
     template <std::input_iterator Iter, std::sentinel_for<Iter> Sent, std::invocable<Iter &, Sent> Rdr>
